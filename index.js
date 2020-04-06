@@ -13,7 +13,38 @@ sleep = (milliseconds) => {
   } while (currentDate - date < milliseconds);
 }
 
-bot = async (hrs) => {
+formatArr = (arr) => {
+  let _new = [[]];
+  let between = false;
+  let j = 0;
+  let ans = [];
+
+  for (let i = 0; i < ex.length; i++) {
+    if (ex[i] == '"') {
+      if (between == true) {
+        between = false;
+      } else {
+        j += 1;
+        _new.push(new Array());
+        between = true;
+      }
+    } else {
+      if (between == true) {
+        _new[j].push(ex[i])
+      }
+    }
+  }
+
+  for (let i = 0; i < _new.length; i++) {
+    if (_new[i].length > 0) {
+      ans.push(_new[i]);
+    }
+  }
+
+  return ans
+}
+
+activityBot = async (hrs) => {
   try {
     const browser = await puppeteer.launch({headless: false});
     const page = await browser.newPage();
@@ -40,18 +71,73 @@ bot = async (hrs) => {
     });
 
     let res00 = "select[name='res[0][0]']";
-    /*
-    let res10 = "select[name='res[1][0]']";
-    let res20 = "select[name='res[2][0]']";
-    let res30 = "select[name='res[3][0]']";
-    let res40 = "select[name='res[4][0]']";
-    */
 
     sleep(1000)
 
     await page.waitFor(res00)
 
+    let ms = 3600000 * hrs
+
+    let loop = 0
+    let intervalFunc = setInterval(async () => {
+      if (loop % 2 == 0) {
+        await page.click("select[name='res[0][0]']");
+      } else {
+        await page.click("select[name='res[1][0]']");
+      }
+    
+      if (++loop === Math.ceil(ms/540000)) {
+        clearInterval(intervalFunc)
+      }
+    }, 5000)
+
+    return `Loop ran ${loop} times.`
+  } catch (error) {
+    return error
+  }
+}
+
+
+activityBot(4);
+
+
+vocabControlBot = async (hrs) => {
+  try {
+    const browser = await puppeteer.launch({headless: false});
+    const page = await browser.newPage();
+
+    await page.setViewport({
+      width: 1920,
+      height: 1080,
+      deviceScaleFactor: 1,
+    })
+
+    await page.goto(BASE_URL + "/login")
+
+    await page.waitForSelector('.login--form-login')
+    await page.type('input#j_username', SECRET_USER)
+    await page.type('input#password', SECRET_PW)
+    await page.click('.btn.btn-default')
+
+    await page.goto(BASE_URL + "/#/program")
+
+    await page.waitFor(`a[href='/digital1/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`)
+
+    await page.evaluate(() => {
+      document.querySelector(`a[href='/digital1/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`).click();
+    });
+
+    sleep(1000)
+
+    const selects = await page.evaluate(() => Array.from(document.querySelectorAll(`select.blank-input`), element => element.name));
+
+    await page.waitFor(selects)
+
     /*
+
+    BY THIS POINT WE HAVE AN ARRAY WITH THE NAMES OF THE INPUTS, WE NEED TO GET THE ARRAY OF ANSWERS AND FORMAT IT WITH OUR FUNCTION
+    THEN RUN A LOOP, SINCE # ANSWERS = # NAMES, RUN ONE LOOP AND DO PAGE.TYPE FOR EACH NAME ITS RESPECTIVE ANSWER
+
     let ans = [];
 
     await page.evaluate((ans) => {
@@ -90,13 +176,8 @@ bot = async (hrs) => {
       }
     }, 5000)
 
-    await browser.close();
     return `Loop ran ${loop} times.`
   } catch (error) {
     return error
   }
 }
-
-
-bot(4);
-
