@@ -13,6 +13,37 @@ sleep = (milliseconds) => {
   } while (currentDate - date < milliseconds);
 }
 
+formatArr = (arr) => {
+  let _new = [[]];
+  let between = false;
+  let j = 0;
+  let ans = [];
+
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] == "'") {
+      if (between == true) {
+        between = false;
+      } else {
+        j += 1;
+        _new.push(new Array());
+        between = true;
+      }
+    } else {
+      if (between == true) {
+        _new[j].push(arr[i])
+      }
+    }
+  }
+
+  for (let i = 0; i < _new.length; i++) {
+    if (_new[i].length > 0) {
+      ans.push(_new[i].join(""));
+    }
+  }
+
+  return ans
+}
+
 activityBot = async (hrs) => {
   try {
     const browser = await puppeteer.launch({headless: false});
@@ -60,15 +91,11 @@ activityBot = async (hrs) => {
       }
     }, 540000)
 
-    return `Loop ran ${loop} times.`
+    return 
   } catch (error) {
     return error
   }
 }
-
-
-//activityBot(4);
-
 
 vocabControlBot = async (hrs) => {
   try {
@@ -103,70 +130,17 @@ vocabControlBot = async (hrs) => {
     await page.waitFor(res00)
 
     const selects = await page.evaluate(() => Array.from(document.querySelectorAll(`select.blank-input`), element => element.name));
+    const stringArr = await page.evaluate(() => document.querySelector("input#correctAnswers").value);
+    const answers = formatArr(stringArr);
 
-    await page.evaluate(() => {
-      window.formatArr = function(arr) {
-        console.log("running")
-        let _new = [[]];
-        let between = false;
-        let j = 0;
-        let ans = [];
-      
-        for (let i = 0; i < arr.length; i++) {
-          if (arr[i] == "'") {
-            if (between == true) {
-              between = false;
-            } else {
-              j += 1;
-              _new.push(new Array());
-              between = true;
-            }
-          } else {
-            if (between == true) {
-              _new[j].push(arr[i])
-            }
-          }
-        }
-      
-        for (let i = 0; i < _new.length; i++) {
-          if (_new[i].length > 0) {
-            ans.push(_new[i].join(""));
-          }
-        }
-      
-        return ans
+    (async function() {
+      for (let i = 0; i < answers.length; i++) {
+        console.log(selects[i], answers[i])
+        await page.type("select[name='" + selects[i] + "']", answers[i]);
       }
-    })
+    })();
 
-    await page.evaluate(async (selects) => {
-      let arr = await document.querySelector("input#correctAnswers").value
-      let ans = formatArr(arr);
-      console.log(ans)
-      console.log(selects)
-      for (let i = 0; i < ans.length; i++) {
-        console.log(selects[i], ans[i])
-        //await page.type(selects[i], ans[i]);
-      }
-    }, selects);
-
-    let loop = 0;
-    /*
-    let ms = 3600000 * hrs
-
-    let loop = 0
-    let intervalFunc = setInterval(async () => {
-      await page.click("select[name='res[0][0]']");
-      await page.evaluate((loop) => {
-        console.log("Clicked, loop:", loop);
-      }, loop);
-
-      if (++loop === Math.ceil(ms/540000)) {
-        clearInterval(intervalFunc)
-      }
-    }, 5000)
-    */
-
-    return `Loop ran ${loop} times.`
+    return 
   } catch (error) {
     return error
   }
