@@ -1,7 +1,7 @@
 const puppeteer = require("puppeteer")
 const secrets = require("./secrets");
 
-const BASE_URL = "https://cyberteachers.eberlitz.com/digital1/rest"
+const BASE_URL = "https://cyberteachers.eberlitz.com/digital/rest"
 const SECRET_USER = secrets.username;
 const SECRET_PW = secrets.password;
 
@@ -44,10 +44,10 @@ formatArr = (arr) => {
   return ans
 }
 
-activityBot = async (hrs) => {
+init = async () => {
   try {
     const browser = await puppeteer.launch({headless: false});
-    const page = await browser.newPage();
+    const [page] = await browser.pages();
 
     await page.setViewport({
       width: 1920,
@@ -62,34 +62,14 @@ activityBot = async (hrs) => {
     await page.type('input#password', SECRET_PW)
     await page.click('.btn.btn-default')
 
+    sleep(5000)
+
     await page.goto(BASE_URL + "/#/program")
 
-    await page.waitFor(`a[href='/digital1/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`)
+    sleep(5000)
 
-    await page.evaluate(() => {
-      document.querySelector(`a[href='/digital1/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`).click();
-    });
-
-    let res00 = "select[name='res[0][0]']";
-
-    sleep(1000)
-
-    await page.waitFor(res00)
-
-    let ms = 3600000 * hrs
-
-    let loop = 0
-    let intervalFunc = setInterval(async () => {
-      if (loop % 2 == 0) {
-        await page.click("select[name='res[0][0]']");
-      } else {
-        await page.click("select[name='res[1][0]']");
-      }
-    
-      if (++loop === Math.ceil(ms/540000)) {
-        clearInterval(intervalFunc)
-      }
-    }, 540000)
+    // way to run function
+    // await wordChoice(page);
 
     return 
   } catch (error) {
@@ -97,53 +77,69 @@ activityBot = async (hrs) => {
   }
 }
 
-vocabControlBot = async (hrs) => {
-  try {
-    const browser = await puppeteer.launch({headless: false});
-    const page = await browser.newPage();
+wordChoice = async (page) => {
+  await page.waitFor(`a[href='/digital/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`)
 
-    await page.setViewport({
-      width: 1920,
-      height: 1080,
-      deviceScaleFactor: 1,
-    })
+  await page.evaluate(() => {
+    document.querySelector(`a[href='/digital/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`).click();
+  });
 
-    await page.goto(BASE_URL + "/login")
+  sleep(1000)
 
-    await page.waitForSelector('.login--form-login')
-    await page.type('input#j_username', SECRET_USER)
-    await page.type('input#password', SECRET_PW)
-    await page.click('.btn.btn-default')
+  let res00 = "select[name='res[0][0]']";
 
-    await page.goto(BASE_URL + "/#/program")
+  await page.waitFor(res00)
 
-    await page.waitFor(`a[href='/digital1/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`)
+  const selects = await page.evaluate(() => Array.from(document.querySelectorAll(`select.blank-input`), element => element.name));
+  const stringArr = await page.evaluate(() => document.querySelector("input#correctAnswers").value);
+  const answers = formatArr(stringArr);
 
-    await page.evaluate(() => {
-      document.querySelector(`a[href='/digital1/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`).click();
-    });
-
-    sleep(1000)
-
-    let res00 = "select[name='res[0][0]']";
-
-    await page.waitFor(res00)
-
-    const selects = await page.evaluate(() => Array.from(document.querySelectorAll(`select.blank-input`), element => element.name));
-    const stringArr = await page.evaluate(() => document.querySelector("input#correctAnswers").value);
-    const answers = formatArr(stringArr);
-
-    (async function() {
-      for (let i = 0; i < answers.length; i++) {
-        console.log(selects[i], answers[i])
-        await page.type("select[name='" + selects[i] + "']", answers[i]);
-      }
-    })();
-
-    return 
-  } catch (error) {
-    return error
+  for (let i = 0; i < answers.length; i++) {
+    console.log(selects[i], answers[i])
+    await page.type("select[name='" + selects[i] + "']", answers[i]);
   }
+
+  return page
 }
 
-vocabControlBot(4);
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+vocabPresentation = async () => {
+  console.log("Hello, vocab presentation")
+}
+
+init();
