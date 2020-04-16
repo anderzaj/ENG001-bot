@@ -66,7 +66,28 @@ init = async () => {
 
     await page.goto(BASE_URL + "/#/program")
 
-    sleep(5000)
+    sleep(10000)
+    
+    await page.evaluate(() => {
+      let nodesList = document.querySelectorAll(".accordion-heading")
+
+      let index = (function () {
+        for (let i = 0; i < nodesList.length; i++) {
+          for (let j = 0; j < nodesList[i].children.length; j++) {
+            if (nodesList[i].children[j].className.includes("accordion-progress")) {
+              if (!nodesList[i].children[j].children[1].textContent.includes("100")) {
+                return i + 1
+              }
+            } 
+          }
+        }
+      })();
+
+      document.querySelector("#header" + index.toString()).children[4].children[0].click();
+    });
+
+    // if statement to check what kind of section we encounter goes here
+    // if (body has classname X, then run Y function)
 
     // way to run function
     // await wordChoice(page);
@@ -106,7 +127,7 @@ vocabPresentation = async () => {
   console.log("Hello, vocab presentation")
 }
 
-vocabPresentation = async () => {
+wordChoice = async () => {
   console.log("Hello, vocab presentation")
 }
 
