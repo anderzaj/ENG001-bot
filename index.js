@@ -134,7 +134,7 @@ sectionIdentifier = async (page) => {
   } else if (sectionClasses.includes("ficheFonctionnelle")) {
     console.log("ficheFonctionnelle");
   } else if (sectionClasses.includes("sentence-ordering")) { 
-    await sentenceOrdering();
+    await sentenceOrdering(page);
   } else if (sectionClasses.includes("fill-blank-in-text")) {
     await fillInBlankText(page);
   } else if (sectionClasses.includes("qcm-video")) {
@@ -290,8 +290,66 @@ fillInBlankText = async (page) => {
   return
 }
 
-sentenceOrdering = async () => {
-  console.log("Hello, sentence ordering");
+sentenceOrdering = async (page) => {
+  try {
+    await page.waitFor(".exercice-content");
+
+    let answerOrder = await page.evaluate(() => {
+      let arr = [];
+      const elements = document.querySelectorAll(".show_answer");
+
+      for (let i = 0; i < elements.length; i++) {
+        arr.push(elements[i].textContent);
+      }
+
+      return arr;
+    });
+
+    for (let i = 0; i < answerOrder.length; i++) {
+      const final = await page.evaluate((i) => {
+        const answerBoxes = document.querySelectorAll(".dialog-text");
+        let bounds = answerBoxes[i].getBoundingClientRect();
+        let x = parseInt(bounds.x + (bounds.width/2));
+        let y = parseInt(bounds.y + (bounds.height/2));
+
+        return {x: x, y: y}
+      }, i)
+
+      const initial = await page.evaluate(async (ans) => {
+        const options = document.querySelectorAll(".dialog-text");
+        for (let i = 0; i < options.length; i++) {
+          if (options[i].innerHTML == ans) {
+            let bounds = options[i].getBoundingClientRect();
+            let x = parseInt(bounds.x + (bounds.width/2));
+            let y = parseInt(bounds.y + (bounds.height/2));
+
+            return {x: x, y: y};
+          }
+        }
+      }, answerOrder[i]);
+
+      await page.mouse.move(initial.x, initial.y);
+      await page.mouse.down();
+      await page.mouse.move(final.x, final.y);
+      await page.mouse.up();
+      sleep(250);
+    }
+
+    await page.evaluate(() => {
+      document.querySelector(".btn-correction").click();
+      document.querySelector(".btn-last").click();
+    })
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);
+  } catch (err) {
+    console.error(err);
+  }
+
+  return
 }
 
 vocabPresentation_ = async () => {
