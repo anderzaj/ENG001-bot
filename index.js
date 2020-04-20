@@ -92,6 +92,7 @@ init = async () => {
     sleep(5000);
 
     // TODO: aqui hay que agregar un loop o algo, para que si index = -1 (no encontro un programa que no este listo) avanze a la siguiente pagina y busque denuevo
+    // quizas este loop podria ir dentro del mismo programFinder? creo que deberia ir dentro del mismo programFinder().
     const index = await programFinder(page);
 
     await page.waitFor("#header" + index.toString())
