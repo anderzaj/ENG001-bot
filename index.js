@@ -138,7 +138,7 @@ sectionIdentifier = async (page) => {
   } else if (sectionClasses.includes("fill-blank-in-text")) {
     await fillInBlankText(page);
   } else if (sectionClasses.includes("qcm-video")) {
-    console.log("qcm-video");
+    await qcmVideo(page);
   } else if (sectionClasses.includes("writing-assistant")) { // in one program this class appears more than one time, careful
     console.log("writing-assistant");
   } else if (sectionClasses.includes("speaking-role-play")) {
@@ -157,13 +157,6 @@ sectionIdentifier = async (page) => {
 
   return;
 }
-
-// todas las funciones que resuelvan secciones de un programa, tienen la misma estructura:
-// 1) esperar a que el ejercicio cargue
-// 2) aplicar la logica y acciones necesarias para resolver el ejercicio
-// 3) apretar next/continuar/lo que sea para ir al siguiente ejercicio
-// 4) sleep, para que el siguiente ejercicio cargue, (esto es lo mismo que paso 1, en este punto ya deberia estar corriendo el siguiente ejercicio)
-// 5) identificar que tipo de ejercicio es -> tenemos que identificar el tipo de ejercicio muchas veces, deberia ser su propia funcion
 
 wordChoice = async (page) => {
   try {
@@ -352,8 +345,35 @@ sentenceOrdering = async (page) => {
   return
 }
 
-vocabPresentation_ = async () => {
-  console.log("Hello, vocab presentation");
+qcmVideo = async (page) => {
+  try {
+    await page.waitFor(".exercice-content");
+
+    await page.evaluate(() => {
+      const options = document.querySelectorAll(".answer-text");
+
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].innerHTML.includes(options[i].getAttribute("correct"))) {
+          options[i].click();
+        }
+      }
+    });
+
+    await page.evaluate(() => {
+      document.querySelector(".btn-correction").click();
+      document.querySelector(".btn-last").click();
+    })
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);
+  } catch (err) {
+    console.error(err);
+  }
+
+  return
 }
 
 vocabPresentation_ = async () => {
