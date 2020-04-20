@@ -91,23 +91,15 @@ init = async () => {
 
     sleep(5000);
 
-    await page.waitFor(`a[href='/digital/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`);
-
-    await page.evaluate(() => {
-      document.querySelector(`a[href='/digital/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`).click();
-    });
-
-    sleep(1000);
-
     // TODO: aqui hay que agregar un loop o algo, para que si index = -1 (no encontro un programa que no este listo) avanze a la siguiente pagina y busque denuevo
-    /*const index = await programFinder(page);
+    const index = await programFinder(page);
 
     await page.waitFor("#header" + index.toString())
 
     await page.evaluate(async (index) => {
       await document.querySelector("#header" + index.toString()).children[4].children[0].click();
     }, index)
-*/
+
     sleep(1000);
 
     await page.waitFor("body");
@@ -153,6 +145,8 @@ sectionIdentifier = async (page) => {
     console.log("speech-trainer");
   } else if (sectionClasses.includes("speech-trainer")) {
     console.log("speech-trainer");
+  } else if (sectionClasses.includes("section-program")) {
+    await sectionProgram(page);
   }
 
   return;
@@ -190,9 +184,10 @@ wordChoice = async (page) => {
   return;
 }
 
-// TODO: should we add something to wait for before running the logic? (like waitFor(body) or something)
 vocabularyPresentation = async (page) => {
   try {
+    await page.waitFor(".btn-last");
+
     await page.evaluate(() => {
       document.querySelector(".btn-last").click();
     })
@@ -209,12 +204,13 @@ vocabularyPresentation = async (page) => {
   return;
 }
 
-// TODO: should we add something to wait for before running the logic? (like waitFor(body) or something)
 speakingRolePlay = async (page) => {
   try {
+    await page.waitFor(".btn-retry");
+
     await page.evaluate(() => {
-      document.querySelector(".btn-last").click();
-    })
+      document.querySelector(`a[name='nextBte']`).click();
+    });
 
     sleep(5000);
 
@@ -380,7 +376,7 @@ writingAssistant = async (page) => {
   try {
     await page.waitFor(".exercice-content");
 
-    sleep(3000);
+    sleep(2000);
 
     const modalCoords = await page.evaluate(() => {
       const bounds = document.querySelector("#modalCloseBtn").getBoundingClientRect();
@@ -391,7 +387,7 @@ writingAssistant = async (page) => {
 
     await page.mouse.click(modalCoords.x, modalCoords.y);
  
-    const iframeCoords = await page.evaluate(() => {
+    await page.evaluate(() => {
       const btns = document.querySelectorAll(".btn-default");
 
       for (let i = 0; i < btns.length; i++) {
@@ -399,41 +395,27 @@ writingAssistant = async (page) => {
           btns[i].click();
         }
       }
+    });
 
-      const iframeBounds = document.querySelector(".iframe-wrapper").getBoundingClientRect();
-      const initX = iframeBounds.x + 1;
-      const initY = iframeBounds.y + 1;
-      const finalX = iframeBounds.right - 1;
-      const finalY = iframeBounds.bottom - 1;
+    sleep(1000)
 
-      return {
-        initX: initX, 
-        initY: initY, 
-        finalX: finalX, 
-        finalY: finalY
-      };
+    const text = await page.evaluate(() => {
+      const iframe = document.querySelector("iframe");
+      return iframe.contentWindow.document.querySelectorAll("p")[1].innerText;
     })
     
-    sleep(1500);
+    await page.mouse.click(modalCoords.x, modalCoords.y);
+    await page.type("#text", text);
 
-    console.log("clicking and dragging")
-    await page.mouse.move(iframeCoords.initX, iframeCoords.initY);
-    await page.mouse.down();
-    await page.mouse.move(iframeCoords.finalX, iframeCoords.finalY);
-    //close the modal
-    //await page.mouse.click(modalCoords.x, modalCoords.y);
-
-/*
     await page.evaluate(() => {
-      document.querySelector(".btn-correction").click();
-      document.querySelector(".btn-last").click();
+      document.querySelector(".btn-next").click();
     })
 
     sleep(5000);
 
     await page.waitFor("body");
 
-    await sectionIdentifier(page);*/
+    await sectionIdentifier(page);
   } catch (err) {
     console.error(err);
   }
@@ -441,8 +423,30 @@ writingAssistant = async (page) => {
   return
 }
 
-vocabPresentation_ = async () => {
-  console.log("Hello, vocab presentation");
+sectionProgram = async (page) => {
+  try {
+    await page.waitFor(".btn-last");
+
+    await page.evaluate(() => {
+      document.querySelector(".btn-last").click();
+    });
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    const index = await programFinder(page);
+
+    await page.waitFor("#header" + index.toString())
+
+    await page.evaluate(async (index) => {
+      await document.querySelector("#header" + index.toString()).children[4].children[0].click();
+    }, index)
+  } catch (err) {
+    console.error(err);
+  }
+
+  return;
 }
 
 vocabPresentation_ = async () => {
