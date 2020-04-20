@@ -140,7 +140,7 @@ sectionIdentifier = async (page) => {
   } else if (sectionClasses.includes("qcm-video")) {
     await qcmVideo(page);
   } else if (sectionClasses.includes("writing-assistant")) { // in one program this class appears more than one time, careful
-    console.log("writing-assistant");
+    await writingAssistant(page);
   } else if (sectionClasses.includes("speaking-role-play")) {
     await speakingRolePlay(page);
   } else if (sectionClasses.includes("speech-trainer")) {
@@ -362,7 +362,7 @@ qcmVideo = async (page) => {
     await page.evaluate(() => {
       document.querySelector(".btn-correction").click();
       document.querySelector(".btn-last").click();
-    })
+    });
 
     sleep(5000);
 
@@ -376,8 +376,69 @@ qcmVideo = async (page) => {
   return
 }
 
-vocabPresentation_ = async () => {
-  console.log("Hello, vocab presentation");
+writingAssistant = async (page) => {
+  try {
+    await page.waitFor(".exercice-content");
+
+    sleep(3000);
+
+    const modalCoords = await page.evaluate(() => {
+      const bounds = document.querySelector("#modalCloseBtn").getBoundingClientRect();
+      let x = bounds.x + (bounds.width/2);
+      let y = bounds.y + (bounds.height/2);
+      return {x: x, y: y};
+    });
+
+    await page.mouse.click(modalCoords.x, modalCoords.y);
+ 
+    const iframeCoords = await page.evaluate(() => {
+      const btns = document.querySelectorAll(".btn-default");
+
+      for (let i = 0; i < btns.length; i++) {
+        if (btns[i].innerHTML.includes("Respuesta tipo")) {
+          btns[i].click();
+        }
+      }
+
+      const iframeBounds = document.querySelector(".iframe-wrapper").getBoundingClientRect();
+      const initX = iframeBounds.x + 1;
+      const initY = iframeBounds.y + 1;
+      const finalX = iframeBounds.right - 1;
+      const finalY = iframeBounds.bottom - 1;
+
+      return {
+        initX: initX, 
+        initY: initY, 
+        finalX: finalX, 
+        finalY: finalY
+      };
+    })
+    
+    sleep(1500);
+
+    console.log("clicking and dragging")
+    await page.mouse.move(iframeCoords.initX, iframeCoords.initY);
+    await page.mouse.down();
+    await page.mouse.move(iframeCoords.finalX, iframeCoords.finalY);
+    //close the modal
+    //await page.mouse.click(modalCoords.x, modalCoords.y);
+
+/*
+    await page.evaluate(() => {
+      document.querySelector(".btn-correction").click();
+      document.querySelector(".btn-last").click();
+    })
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);*/
+  } catch (err) {
+    console.error(err);
+  }
+
+  return
 }
 
 vocabPresentation_ = async () => {
