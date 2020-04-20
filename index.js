@@ -91,23 +91,15 @@ init = async () => {
 
     sleep(5000);
 
-    await page.waitFor(`a[href='/digital/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`);
-
-    await page.evaluate(() => {
-      document.querySelector(`a[href='/digital/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`).click();
-    });
-
-    sleep(1000);
-
     // TODO: aqui hay que agregar un loop o algo, para que si index = -1 (no encontro un programa que no este listo) avanze a la siguiente pagina y busque denuevo
-    /*const index = await programFinder(page);
+    const index = await programFinder(page);
 
     await page.waitFor("#header" + index.toString())
 
     await page.evaluate(async (index) => {
       await document.querySelector("#header" + index.toString()).children[4].children[0].click();
     }, index)
-*/
+
     sleep(1000);
 
     await page.waitFor("body");
@@ -140,7 +132,7 @@ sectionIdentifier = async (page) => {
   } else if (sectionClasses.includes("qcm-video")) {
     await qcmVideo(page);
   } else if (sectionClasses.includes("writing-assistant")) { // in one program this class appears more than one time, careful
-    console.log("writing-assistant");
+    await writingAssistant(page);
   } else if (sectionClasses.includes("speaking-role-play")) {
     await speakingRolePlay(page);
   } else if (sectionClasses.includes("speech-trainer")) {
@@ -153,6 +145,8 @@ sectionIdentifier = async (page) => {
     console.log("speech-trainer");
   } else if (sectionClasses.includes("speech-trainer")) {
     console.log("speech-trainer");
+  } else if (sectionClasses.includes("section-program")) {
+    await sectionProgram(page);
   }
 
   return;
@@ -190,9 +184,10 @@ wordChoice = async (page) => {
   return;
 }
 
-// TODO: should we add something to wait for before running the logic? (like waitFor(body) or something)
 vocabularyPresentation = async (page) => {
   try {
+    await page.waitFor(".btn-last");
+
     await page.evaluate(() => {
       document.querySelector(".btn-last").click();
     })
@@ -209,12 +204,13 @@ vocabularyPresentation = async (page) => {
   return;
 }
 
-// TODO: should we add something to wait for before running the logic? (like waitFor(body) or something)
 speakingRolePlay = async (page) => {
   try {
+    await page.waitFor(".btn-retry");
+
     await page.evaluate(() => {
-      document.querySelector(".btn-last").click();
-    })
+      document.querySelector(`a[name='nextBte']`).click();
+    });
 
     sleep(5000);
 
@@ -362,6 +358,57 @@ qcmVideo = async (page) => {
     await page.evaluate(() => {
       document.querySelector(".btn-correction").click();
       document.querySelector(".btn-last").click();
+    });
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);
+  } catch (err) {
+    console.error(err);
+  }
+
+  return
+}
+
+writingAssistant = async (page) => {
+  try {
+    await page.waitFor(".exercice-content");
+
+    sleep(2000);
+
+    const modalCoords = await page.evaluate(() => {
+      const bounds = document.querySelector("#modalCloseBtn").getBoundingClientRect();
+      let x = bounds.x + (bounds.width/2);
+      let y = bounds.y + (bounds.height/2);
+      return {x: x, y: y};
+    });
+
+    await page.mouse.click(modalCoords.x, modalCoords.y);
+ 
+    await page.evaluate(() => {
+      const btns = document.querySelectorAll(".btn-default");
+
+      for (let i = 0; i < btns.length; i++) {
+        if (btns[i].innerHTML.includes("Respuesta tipo")) {
+          btns[i].click();
+        }
+      }
+    });
+
+    sleep(1000)
+
+    const text = await page.evaluate(() => {
+      const iframe = document.querySelector("iframe");
+      return iframe.contentWindow.document.querySelectorAll("p")[1].innerText;
+    })
+    
+    await page.mouse.click(modalCoords.x, modalCoords.y);
+    await page.type("#text", text);
+
+    await page.evaluate(() => {
+      document.querySelector(".btn-next").click();
     })
 
     sleep(5000);
@@ -376,12 +423,30 @@ qcmVideo = async (page) => {
   return
 }
 
-vocabPresentation_ = async () => {
-  console.log("Hello, vocab presentation");
-}
+sectionProgram = async (page) => {
+  try {
+    await page.waitFor(".btn-last");
 
-vocabPresentation_ = async () => {
-  console.log("Hello, vocab presentation");
+    await page.evaluate(() => {
+      document.querySelector(".btn-last").click();
+    });
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    const index = await programFinder(page);
+
+    await page.waitFor("#header" + index.toString())
+
+    await page.evaluate(async (index) => {
+      await document.querySelector("#header" + index.toString()).children[4].children[0].click();
+    }, index)
+  } catch (err) {
+    console.error(err);
+  }
+
+  return;
 }
 
 vocabPresentation_ = async () => {
