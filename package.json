@@ -1,5 +1,5 @@
 {
-  "name": "activity-bot",
+  "name": "ENG001-bot",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,7 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "clipboardy": "^2.3.0",
     "puppeteer": "^2.1.1"
   }
 }

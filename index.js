@@ -92,6 +92,7 @@ init = async () => {
     sleep(5000);
 
     // TODO: aqui hay que agregar un loop o algo, para que si index = -1 (no encontro un programa que no este listo) avanze a la siguiente pagina y busque denuevo
+    // quizas este loop podria ir dentro del mismo programFinder? creo que deberia ir dentro del mismo programFinder().
     const index = await programFinder(page);
 
     await page.waitFor("#header" + index.toString())
@@ -129,22 +130,14 @@ sectionIdentifier = async (page) => {
     await sentenceOrdering(page);
   } else if (sectionClasses.includes("fill-blank-in-text")) {
     await fillInBlankText(page);
-  } else if (sectionClasses.includes("qcm-video")) {
+  } else if (sectionClasses.includes("qcm-video") || sectionClasses.includes("qcm-audio")) {
     await qcmVideo(page);
   } else if (sectionClasses.includes("writing-assistant")) { // in one program this class appears more than one time, careful
     await writingAssistant(page);
   } else if (sectionClasses.includes("speaking-role-play")) {
     await speakingRolePlay(page);
-  } else if (sectionClasses.includes("speech-trainer")) {
-    console.log("speech-trainer");
-  } else if (sectionClasses.includes("blank-sentence")) {
-    console.log("blank-sentence");
-  } else if (sectionClasses.includes("speech-trainer")) {
-    console.log("speech-trainer");
-  } else if (sectionClasses.includes("speech-trainer")) {
-    console.log("speech-trainer");
-  } else if (sectionClasses.includes("speech-trainer")) {
-    console.log("speech-trainer");
+  } else if (sectionClasses.includes("drag-n-drop-generic")) {
+    await dragNDropGeneric(page);
   } else if (sectionClasses.includes("section-program")) {
     await sectionProgram(page);
   }
@@ -163,7 +156,6 @@ wordChoice = async (page) => {
     const answers = formatArr(stringArr);
 
     for (let i = 0; i < answers.length; i++) {
-      console.log(selects[i], answers[i]);
       await page.type("select[name='" + selects[i] + "']", answers[i]);
     }
 
@@ -449,11 +441,63 @@ sectionProgram = async (page) => {
   return;
 }
 
-vocabPresentation_ = async () => {
-  console.log("Hello, vocab presentation");
+dragNDropGeneric = async (page) => {
+  try {
+    await page.waitFor(".exercice-content");
+
+    let movements = await page.evaluate(() => {
+      const draggables = document.querySelectorAll(".ui-draggable-handle");
+      const targets = document.querySelectorAll(".box-slot");
+      let movements = [];
+
+      draggables.forEach((e1) => targets.forEach((e2) => {
+        if (e1.getAttribute("ans") == e2.getAttribute("ans")) {
+          let initialBounds = e1.getBoundingClientRect();
+          let initialX = parseInt(initialBounds.x + (initialBounds.width/2));
+          let initialY = parseInt(initialBounds.y + (initialBounds.height/2));
+
+          let finalBounds = e2.getBoundingClientRect();
+          let finalX = parseInt(finalBounds.x + (finalBounds.width/2));
+          let finalY = parseInt(finalBounds.y + (finalBounds.height/2));
+
+          movements.push({
+            initialX: initialX,
+            initialY: initialY,
+            finalX: finalX,
+            finalY: finalY,
+          });
+        }
+      }));
+
+      return movements
+    });
+
+    for (let i = 0; i < movements.length; i++) {
+      await page.mouse.move(movements[i].initialX, movements[i].initialY);
+      await page.mouse.down();
+      await page.mouse.move(movements[i].finalX, movements[i].finalY);
+      await page.mouse.up();
+    }
+
+
+    await page.evaluate(() => {
+      document.querySelector(".btn-correction").click();
+      document.querySelector(".btn-last").click();
+    });
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);
+  } catch (err) {
+    console.error(err);
+  }
+
+  return
 }
 
-vocabPresentation_ = async () => {
+qcmAudio = async (page) => {
   console.log("Hello, vocab presentation");
 }
 
