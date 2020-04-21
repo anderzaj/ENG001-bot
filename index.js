@@ -439,6 +439,10 @@ sectionProgram = async (page) => {
     await page.evaluate(async (index) => {
       await document.querySelector("#header" + index.toString()).children[4].children[0].click();
     }, index)
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);
   } catch (err) {
     console.error(err);
   }
