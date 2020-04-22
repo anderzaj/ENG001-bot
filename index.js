@@ -48,6 +48,8 @@ programFinder = async (page) => {
   let i = await page.evaluate(() => {
     const nodes = document.querySelectorAll(".accordion-heading");
 
+    // loop through 
+
     const index = (function () {
       for (let i = 0; i < nodes.length; i++) {
         for (let j = 0; j < nodes[i].children.length; j++) {
@@ -95,11 +97,11 @@ init = async () => {
     // quizas este loop podria ir dentro del mismo programFinder? creo que deberia ir dentro del mismo programFinder().
     const index = await programFinder(page);
 
-    await page.waitFor("#header" + index.toString())
+    await page.waitFor("#header" + index.toString());
 
     await page.evaluate(async (index) => {
       await document.querySelector("#header" + index.toString()).children[4].children[0].click();
-    }, index)
+    }, index);
 
     sleep(1000);
 
@@ -112,20 +114,20 @@ init = async () => {
     console.error(err);
   }
 
-  return
+  return;
 }
 
 sectionIdentifier = async (page) => {
   const sectionClasses = await page.evaluate(() => {
     return document.getElementsByTagName("body")[0].className;
-  })
+  });
 
   if (sectionClasses.includes("vocabulary-presentation")) {
     await vocabularyPresentation(page);
   } else if (sectionClasses.includes("word-choice")) {
     await wordChoice(page);
   } else if (sectionClasses.includes("ficheFonctionnelle")) {
-    console.log("ficheFonctionnelle");
+    await ficheFonctionnelle(page);
   } else if (sectionClasses.includes("sentence-ordering")) { 
     await sentenceOrdering(page);
   } else if (sectionClasses.includes("fill-blank-in-text")) {
@@ -140,6 +142,8 @@ sectionIdentifier = async (page) => {
     await dragNDropGeneric(page);
   } else if (sectionClasses.includes("section-program")) {
     await sectionProgram(page);
+  } else {
+    console.log("FOUND EXERCISE WE DIDNT ACCOUNT FOR, CLASSES:", sectionClasses);
   }
 
   return;
@@ -162,7 +166,7 @@ wordChoice = async (page) => {
     await page.evaluate(() => {
       document.querySelector(".btn-correction").click();
       document.querySelector(".btn-last").click();
-    })
+    });
 
     sleep(5000);
 
@@ -257,7 +261,7 @@ fillInBlankText = async (page) => {
     await page.evaluate(() => {
       document.querySelector(".btn-correction").click();
       document.querySelector(".btn-last").click();
-    })
+    });
 
     sleep(5000);
 
@@ -268,12 +272,12 @@ fillInBlankText = async (page) => {
     console.error(err);
   }
 
-  return
+  return;
 }
 
 sentenceOrdering = async (page) => {
   try {
-    await page.waitFor(".exercice-content");
+    await page.waitFor(".dialog-text");
 
     let answerOrder = await page.evaluate(() => {
       let arr = [];
@@ -293,13 +297,13 @@ sentenceOrdering = async (page) => {
         let x = parseInt(bounds.x + (bounds.width/2));
         let y = parseInt(bounds.y + (bounds.height/2));
 
-        return {x: x, y: y}
-      }, i)
+        return {x: x, y: y};
+      }, i);
 
       const initial = await page.evaluate(async (ans) => {
         const options = document.querySelectorAll(".dialog-text");
         for (let i = 0; i < options.length; i++) {
-          if (options[i].innerHTML == ans) {
+          if (options[i].textContent.includes(ans)) {
             let bounds = options[i].getBoundingClientRect();
             let x = parseInt(bounds.x + (bounds.width/2));
             let y = parseInt(bounds.y + (bounds.height/2));
@@ -308,6 +312,7 @@ sentenceOrdering = async (page) => {
           }
         }
       }, answerOrder[i]);
+      sleep(1000)
 
       await page.mouse.move(initial.x, initial.y);
       await page.mouse.down();
@@ -330,7 +335,7 @@ sentenceOrdering = async (page) => {
     console.error(err);
   }
 
-  return
+  return;
 }
 
 qcmVideo = async (page) => {
@@ -361,7 +366,7 @@ qcmVideo = async (page) => {
     console.error(err);
   }
 
-  return
+  return;
 }
 
 writingAssistant = async (page) => {
@@ -412,7 +417,7 @@ writingAssistant = async (page) => {
     console.error(err);
   }
 
-  return
+  return;
 }
 
 sectionProgram = async (page) => {
@@ -429,11 +434,15 @@ sectionProgram = async (page) => {
 
     const index = await programFinder(page);
 
-    await page.waitFor("#header" + index.toString())
+    await page.waitFor("#header" + index.toString());
 
     await page.evaluate(async (index) => {
       await document.querySelector("#header" + index.toString()).children[4].children[0].click();
     }, index)
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);
   } catch (err) {
     console.error(err);
   }
@@ -469,7 +478,7 @@ dragNDropGeneric = async (page) => {
         }
       }));
 
-      return movements
+      return movements;
     });
 
     for (let i = 0; i < movements.length; i++) {
@@ -494,11 +503,27 @@ dragNDropGeneric = async (page) => {
     console.error(err);
   }
 
-  return
+  return;
 }
 
-qcmAudio = async (page) => {
-  console.log("Hello, vocab presentation");
+ficheFonctionnelle = async (page) => {
+  try {
+    await page.waitFor(".btn-next");
+
+    await page.evaluate(() => {
+      document.querySelector(`a[name='nextBte']`).click();
+    });
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);
+  } catch (err) {
+    console.error(err);
+  }
+
+  return;
 }
 
 init();
