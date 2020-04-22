@@ -48,8 +48,6 @@ programFinder = async (page) => {
   let i = await page.evaluate(() => {
     const nodes = document.querySelectorAll(".accordion-heading");
 
-    // loop through 
-
     const index = (function () {
       for (let i = 0; i < nodes.length; i++) {
         for (let j = 0; j < nodes[i].children.length; j++) {
@@ -130,7 +128,7 @@ sectionIdentifier = async (page) => {
     await ficheFonctionnelle(page);
   } else if (sectionClasses.includes("sentence-ordering")) { 
     await sentenceOrdering(page);
-  } else if (sectionClasses.includes("fill-blank-in-text")) {
+  } else if (sectionClasses.includes("fill-blank-in-text") || sectionClasses.includes("blank-sentence drag-n-drop")) {
     await fillInBlankText(page);
   } else if (sectionClasses.includes("qcm-video") || sectionClasses.includes("qcm-audio")) {
     await qcmVideo(page);
@@ -142,8 +140,60 @@ sectionIdentifier = async (page) => {
     await dragNDropGeneric(page);
   } else if (sectionClasses.includes("section-program")) {
     await sectionProgram(page);
+  } else if (sectionClasses.includes("qcm")) {
+    console.log("qcm");
+  } else if (sectionClasses.includes("fill-blank")) {
+    await fillBlank(page);
   } else {
     console.log("FOUND EXERCISE WE DIDNT ACCOUNT FOR, CLASSES:", sectionClasses);
+  }
+
+  return;
+}
+
+fillBlank = async (page) => {
+  try {
+    await page.waitFor("body");
+
+    sleep(5000)
+
+    const fields = await page.evaluate(() => {
+      const elements = document.querySelectorAll(`input[name='responseId']`);
+      let arr = []
+
+      for (let i = 0; i < elements.length; i++) {
+        arr.push(elements[i])
+      }
+      return arr;
+    });
+
+    const answers = await page.evaluate(() => {
+        const elements = document.querySelectorAll(`input[name='responseId']`);
+        let answers = [];
+        
+        for (let i = 0; i < elements.length; i++) {
+          answers.push(elements[i].getAttribute("correctresponse"));
+        }
+
+        return answers;
+    });
+
+    for (let i = 0; i < fields.length; i++) {
+      await page.type(`input[correctresponse="${answers[i]}"]`, answers[i]);
+    }
+
+    await page.evaluate(() => {
+      document.querySelector(".btn-correction").click();
+      document.querySelector(".btn-last").click();
+    });
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);
+  } catch (err) {
+    console.error(err);
   }
 
   return;
