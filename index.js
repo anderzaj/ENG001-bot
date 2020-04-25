@@ -89,7 +89,9 @@ init = async () => {
 
     await page.goto(BASE_URL + "/#/program");
 
-    sleep(5000);
+    await page.waitFor("body");
+
+    sleep(10000);
 
     let index = await programFinder(page);
 
@@ -136,7 +138,7 @@ sectionIdentifier = async (page) => {
     await ficheFonctionnelle(page);
   } else if (sectionClasses.includes("sentence-ordering")) { 
     await sentenceOrdering(page);
-  } else if (sectionClasses.includes("fill-blank-in-text") || sectionClasses.includes("blank-sentence drag-n-drop")) {
+  } else if (sectionClasses.includes("fill-blank-in-text")) {
     await fillInBlankText(page);
   } else if (sectionClasses.includes("qcm-video") || sectionClasses.includes("qcm-audio")) {
     await qcmVideo(page);
@@ -152,6 +154,8 @@ sectionIdentifier = async (page) => {
     console.log("qcm");
   } else if (sectionClasses.includes("fill-blank")) {
     await fillBlank(page);
+  } else if (sectionClasses.includes("blank-sentence drag-n-drop")) {
+    await blankSentence(page);
   } else {
     console.log("FOUND EXERCISE WE DIDNT ACCOUNT FOR, CLASSES:", sectionClasses);
   }
@@ -534,6 +538,59 @@ dragNDropGeneric = async (page) => {
   return;
 }
 
+blankSentence = async (page) => {
+  try {
+    await page.waitFor(".exercice-content");
+
+    const snaptargets = await page.evaluate(async () => {
+      const snaptargets = document.querySelectorAll(".snaptarget");
+
+      let elements = [];
+
+      for (let i = 0; i < snaptargets.length; i++) {
+        let tag = snaptargets[i].getAttribute("ans");
+        let bounds = snaptargets[i].children[0].getBoundingClientRect();
+
+        let finalX = parseInt(bounds.x + (bounds.width/2));
+        let finalY = parseInt(bounds.y + (bounds.height/2));
+
+        let coords = [finalX, finalY];
+        elements.push({[tag]: coords});
+      }
+
+      return elements;
+    });
+
+    for (let i = 0; i < snaptargets.length; i++) {
+      const draggableCoords = await page.evaluate(async (ans) => {
+        const bounds = document.querySelector(`span[ans='${ans}']`).getBoundingClientRect();
+        return [(bounds.x + bounds.width*0.33), (bounds.y + bounds.height/2)];
+      }, Object.keys(snaptargets[i])[0]);
+
+      let finalX = snaptargets[i][Object.keys(snaptargets[i])[0]][0];
+      let finalY = snaptargets[i][Object.keys(snaptargets[i])[0]][1];
+      
+      await page.mouse.move(draggableCoords[0] + 5, draggableCoords[1]);
+      await page.mouse.down();
+      await page.mouse.move(finalX, finalY);
+      await page.mouse.up();
+    }
+
+    await page.evaluate(() => {
+      document.querySelector(".btn-correction").click();
+      document.querySelector(".btn-last").click();
+    });
+
+    sleep(5000);
+
+    await page.waitFor("body");
+
+    await sectionIdentifier(page);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 ficheFonctionnelle = async (page) => {
   try {
     await page.waitFor(".btn-next");
@@ -562,7 +619,9 @@ sectionProgram = async (page) => {
       document.querySelector(".btn-last").click();
     });
 
-    sleep(5500);
+    await page.waitFor("body");
+
+    sleep(10000);
 
     let index = await programFinder(page);
 
