@@ -93,9 +93,17 @@ init = async () => {
 
     sleep(5000);
 
-    // TODO: aqui hay que agregar un loop o algo, para que si index = -1 (no encontro un programa que no este listo) avanze a la siguiente pagina y busque denuevo
-    // quizas este loop podria ir dentro del mismo programFinder? creo que deberia ir dentro del mismo programFinder().
-    const index = await programFinder(page);
+    let index = await programFinder(page);
+
+    while (index == -1) {
+       await page.evaluate(async () => {
+        await document.querySelector("a[ng-click='nextPage()']").click();
+      });
+      
+      sleep(1500);
+      
+      index = await programFinder(page);
+    }
 
     await page.waitFor("#header" + index.toString());
 
@@ -420,36 +428,6 @@ writingAssistant = async (page) => {
   return;
 }
 
-sectionProgram = async (page) => {
-  try {
-    await page.waitFor(".btn-last");
-
-    await page.evaluate(() => {
-      document.querySelector(".btn-last").click();
-    });
-
-    sleep(5000);
-
-    await page.waitFor("body");
-
-    const index = await programFinder(page);
-
-    await page.waitFor("#header" + index.toString());
-
-    await page.evaluate(async (index) => {
-      await document.querySelector("#header" + index.toString()).children[4].children[0].click();
-    }, index)
-
-    await page.waitFor("body");
-
-    await sectionIdentifier(page);
-  } catch (err) {
-    console.error(err);
-  }
-
-  return;
-}
-
 dragNDropGeneric = async (page) => {
   try {
     await page.waitFor(".exercice-content");
@@ -517,6 +495,48 @@ ficheFonctionnelle = async (page) => {
     sleep(5000);
 
     await page.waitFor("body");
+
+    await sectionIdentifier(page);
+  } catch (err) {
+    console.error(err);
+  }
+
+  return;
+}
+
+sectionProgram = async (page) => {
+  try {
+    await page.waitFor(".btn-last");
+
+    await page.evaluate(() => {
+      document.querySelector(".btn-last").click();
+    });
+
+    sleep(5500);
+
+    let index = await programFinder(page);
+
+    while (index == -1) {
+       await page.evaluate(async () => {
+        await document.querySelector("a[ng-click='nextPage()']").click();
+      });
+      
+      sleep(1500);
+      
+      index = await programFinder(page);
+    }
+
+    await page.waitFor("#header" + index.toString());
+
+    await page.evaluate(async (index) => {
+      await document.querySelector("#header" + index.toString()).children[4].children[0].click();
+    }, index);
+
+    sleep(1000);
+
+    await page.waitFor("body");
+    
+    sleep(5000);
 
     await sectionIdentifier(page);
   } catch (err) {
