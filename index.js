@@ -341,6 +341,8 @@ sentenceOrdering = async (page) => {
   try {
     await page.waitFor(".dialog-text");
 
+    sleep(5000);
+
     let answerOrder = await page.evaluate(() => {
       let arr = [];
       const elements = document.querySelectorAll(".show_answer");
