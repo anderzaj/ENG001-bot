@@ -89,7 +89,9 @@ init = async () => {
 
     await page.goto(BASE_URL + "/#/program");
 
-    sleep(5000);
+    await page.waitFor("body");
+
+    sleep(10000);
 
     let index = await programFinder(page);
 
@@ -562,7 +564,9 @@ sectionProgram = async (page) => {
       document.querySelector(".btn-last").click();
     });
 
-    sleep(5500);
+    await page.waitFor("body");
+
+    sleep(10000);
 
     let index = await programFinder(page);
 
