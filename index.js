@@ -96,7 +96,13 @@ init = async () => {
     let index = await programFinder(page);
 
     while (index == -1) {
-       await page.evaluate(async () => {
+      const counter = document.querySelector(".pagination-counter").textContent.trim().split("");
+      if (counter[0] == counter[4]) {
+        console.log("All programs finished :)");
+        process.exit();
+      }
+
+      await page.evaluate(async () => {
         await document.querySelector("a[ng-click='nextPage()']").click();
       });
       
