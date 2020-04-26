@@ -142,7 +142,7 @@ sectionIdentifier = async (page) => {
     await fillBlankDragNDrop(page, 1);
   } else if (sectionClasses.includes("qcm-video") || sectionClasses.includes("qcm-audio")) {
     await qcmVideo(page);
-  } else if (sectionClasses.includes("writing-assistant")) { // in one program this class appears more than one time, careful
+  } else if (sectionClasses.includes("writing-assistant")) {
     await writingAssistant(page);
   } else if (sectionClasses.includes("speaking-role-play")) {
     await speakingRolePlay(page);
