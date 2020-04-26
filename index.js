@@ -139,7 +139,7 @@ sectionIdentifier = async (page) => {
   } else if (sectionClasses.includes("sentence-ordering")) { 
     await sentenceOrdering(page);
   } else if (sectionClasses.includes("fill-blank-in-text")) {
-    await fillInBlankText(page);
+    await fillBlankDragNDrop(page, 1);
   } else if (sectionClasses.includes("qcm-video") || sectionClasses.includes("qcm-audio")) {
     await qcmVideo(page);
   } else if (sectionClasses.includes("writing-assistant")) { // in one program this class appears more than one time, careful
@@ -155,7 +155,7 @@ sectionIdentifier = async (page) => {
   } else if (sectionClasses.includes("fill-blank")) {
     await fillBlank(page);
   } else if (sectionClasses.includes("blank-sentence drag-n-drop")) {
-    await blankSentence(page);
+    await fillBlankDragNDrop(page, 0);
   } else {
     console.log("FOUND EXERCISE WE DIDNT ACCOUNT FOR, CLASSES:", sectionClasses);
   }
@@ -282,9 +282,12 @@ speakingRolePlay = async (page) => {
   return;
 }
 
-fillInBlankText = async (page) => {
+// type = 1 means exercise is fillBlankInText, type = 0 means exercise is blankSentence
+fillBlankDragNDrop = async (page, type) => {
   try {
     await page.waitFor(".exercice-content");
+
+    const attribute = type ? "correct" : "ans";
 
     const snaptargets = await page.evaluate(async () => {
       const snaptargets = document.querySelectorAll(".snaptarget");
@@ -292,7 +295,7 @@ fillInBlankText = async (page) => {
       let elements = [];
 
       for (let i = 0; i < snaptargets.length; i++) {
-        let tag = snaptargets[i].getAttribute("correct");
+        let tag = snaptargets[i].getAttribute(attribute);
         let bounds = snaptargets[i].getBoundingClientRect();
 
         let finalX = parseInt(bounds.x + (bounds.width/2));
@@ -307,7 +310,13 @@ fillInBlankText = async (page) => {
 
     for (let i = 0; i < snaptargets.length; i++) {
       const draggableCoords = await page.evaluate(async (ans) => {
-        const bounds = document.querySelector(`[ans='${ans}']`).getBoundingClientRect();
+        let bounds = {};
+        if (type) {
+          bounds = document.querySelector(`[ans='${ans}']`).getBoundingClientRect();
+        } else {
+          bounds = document.querySelector(`span[ans='${ans}']`).getBoundingClientRect();
+        }
+
         return [(bounds.x + bounds.width*0.33), (bounds.y + bounds.height/2)];
       }, Object.keys(snaptargets[i])[0]);
 
@@ -540,6 +549,7 @@ dragNDropGeneric = async (page) => {
   return;
 }
 
+/*
 blankSentence = async (page) => {
   try {
     await page.waitFor(".exercice-content");
@@ -592,6 +602,7 @@ blankSentence = async (page) => {
     console.error(err);
   }
 }
+*/
 
 ficheFonctionnelle = async (page) => {
   try {
