@@ -1,48 +1,11 @@
 const puppeteer = require("puppeteer");
-const secrets = require("./secrets");
+const secrets = require("../secrets");
+const sleep = require("../utils/sleep");
+const formatArr = require("../utils/format-array");
 
-const BASE_URL = "https://cyberteachers.eberlitz.com/digital/rest";
+const BASE_URL = "https://cyberteachers.eberlitz.com/digital1/rest";
 const SECRET_USER = secrets.username;
 const SECRET_PW = secrets.password;
-
-sleep = (milliseconds) => {
-  const date = Date.now();
-  let currentDate = null;
-  do {
-    currentDate = Date.now();
-  } while (currentDate - date < milliseconds);
-}
-
-formatArr = (arr) => {
-  let _new = [[]];
-  let between = false;
-  let j = 0;
-  let ans = [];
-
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i] == "'") {
-      if (between == true) {
-        between = false;
-      } else {
-        j += 1;
-        _new.push(new Array());
-        between = true;
-      }
-    } else {
-      if (between == true) {
-        _new[j].push(arr[i]);
-      }
-    }
-  }
-
-  for (let i = 0; i < _new.length; i++) {
-    if (_new[i].length > 0) {
-      ans.push(_new[i].join(""));
-    }
-  }
-
-  return ans;
-}
 
 programFinder = async (page) => {
   let i = await page.evaluate(() => {
@@ -89,11 +52,30 @@ init = async () => {
 
     await page.goto(BASE_URL + "/#/program");
 
-    sleep(5000);
+    await page.waitFor("body");
 
-    // TODO: aqui hay que agregar un loop o algo, para que si index = -1 (no encontro un programa que no este listo) avanze a la siguiente pagina y busque denuevo
-    // quizas este loop podria ir dentro del mismo programFinder? creo que deberia ir dentro del mismo programFinder().
-    const index = await programFinder(page);
+    sleep(10000);
+
+    let index = await programFinder(page);
+
+    while (index == -1) {
+      const counter = await page.evaluate(() => {
+        return document.querySelector(".pagination-counter").textContent.trim().split("");
+      });
+
+      if (counter[0] == counter[4]) {
+        console.log("All programs finished :)");
+        process.exit();
+      }
+
+      await page.evaluate(async () => {
+        await document.querySelector("a[ng-click='nextPage()']").click();
+      });
+      
+      sleep(1500);
+      
+      index = await programFinder(page);
+    }
 
     await page.waitFor("#header" + index.toString());
 
@@ -120,22 +102,21 @@ sectionIdentifier = async (page) => {
     return document.getElementsByTagName("body")[0].className;
   });
 
-  if (sectionClasses.includes("vocabulary-presentation")) {
-    await vocabularyPresentation(page);
+  if (sectionClasses.includes("vocabulary-presentation") ||
+      sectionClasses.includes("ficheFonctionnelle") ||
+      sectionClasses.includes("speaking-role-play")
+  ) {
+    await skippable(page);
   } else if (sectionClasses.includes("word-choice")) {
     await wordChoice(page);
-  } else if (sectionClasses.includes("ficheFonctionnelle")) {
-    await ficheFonctionnelle(page);
   } else if (sectionClasses.includes("sentence-ordering")) { 
     await sentenceOrdering(page);
-  } else if (sectionClasses.includes("fill-blank-in-text") || sectionClasses.includes("blank-sentence drag-n-drop")) {
-    await fillInBlankText(page);
+  } else if (sectionClasses.includes("fill-blank-in-text")) {
+    await fillBlankDragNDrop(page, 1);
   } else if (sectionClasses.includes("qcm-video") || sectionClasses.includes("qcm-audio")) {
     await qcmVideo(page);
-  } else if (sectionClasses.includes("writing-assistant")) { // in one program this class appears more than one time, careful
+  } else if (sectionClasses.includes("writing-assistant")) {
     await writingAssistant(page);
-  } else if (sectionClasses.includes("speaking-role-play")) {
-    await speakingRolePlay(page);
   } else if (sectionClasses.includes("drag-n-drop-generic")) {
     await dragNDropGeneric(page);
   } else if (sectionClasses.includes("section-program")) {
@@ -144,6 +125,8 @@ sectionIdentifier = async (page) => {
     console.log("qcm");
   } else if (sectionClasses.includes("fill-blank")) {
     await fillBlank(page);
+  } else if (sectionClasses.includes("blank-sentence drag-n-drop")) {
+    await fillBlankDragNDrop(page, 0);
   } else {
     console.log("FOUND EXERCISE WE DIDNT ACCOUNT FOR, CLASSES:", sectionClasses);
   }
@@ -230,12 +213,12 @@ wordChoice = async (page) => {
   return;
 }
 
-vocabularyPresentation = async (page) => {
+skippable = async (page) => {
   try {
-    await page.waitFor(".btn-last");
+    await page.waitFor(`a[name='nextBte']`);
 
     await page.evaluate(() => {
-      document.querySelector(".btn-last").click();
+      document.querySelector(`a[name='nextBte']`).click();
     })
 
     sleep(5000);
@@ -250,37 +233,20 @@ vocabularyPresentation = async (page) => {
   return;
 }
 
-speakingRolePlay = async (page) => {
-  try {
-    await page.waitFor(".btn-retry");
-
-    await page.evaluate(() => {
-      document.querySelector(`a[name='nextBte']`).click();
-    });
-
-    sleep(5000);
-
-    await page.waitFor("body");
-
-    await sectionIdentifier(page);
-  } catch (err) {
-    console.error(err);
-  }
-
-  return;
-}
-
-fillInBlankText = async (page) => {
+// type = 1 means exercise is fillBlankInText, type = 0 means exercise is blankSentence
+fillBlankDragNDrop = async (page, type) => {
   try {
     await page.waitFor(".exercice-content");
 
-    const snaptargets = await page.evaluate(async () => {
+    const attribute = type ? "correct" : "ans";
+
+    const snaptargets = await page.evaluate(async (attribute) => {
       const snaptargets = document.querySelectorAll(".snaptarget");
 
       let elements = [];
 
       for (let i = 0; i < snaptargets.length; i++) {
-        let tag = snaptargets[i].getAttribute("correct");
+        let tag = snaptargets[i].getAttribute(attribute);
         let bounds = snaptargets[i].getBoundingClientRect();
 
         let finalX = parseInt(bounds.x + (bounds.width/2));
@@ -291,13 +257,19 @@ fillInBlankText = async (page) => {
       }
 
       return elements;
-    });
+    }, attribute);
 
     for (let i = 0; i < snaptargets.length; i++) {
-      const draggableCoords = await page.evaluate(async (ans) => {
-        const bounds = document.querySelector(`[ans='${ans}']`).getBoundingClientRect();
+      const draggableCoords = await page.evaluate(async (ans, type) => {
+        let bounds = {};
+        if (type) {
+          bounds = document.querySelector(`[ans='${ans}']`).getBoundingClientRect();
+        } else {
+          bounds = document.querySelector(`span[ans='${ans}']`).getBoundingClientRect();
+        }
+
         return [(bounds.x + bounds.width*0.33), (bounds.y + bounds.height/2)];
-      }, Object.keys(snaptargets[i])[0]);
+      }, Object.keys(snaptargets[i])[0], type);
 
       let finalX = snaptargets[i][Object.keys(snaptargets[i])[0]][0];
       let finalY = snaptargets[i][Object.keys(snaptargets[i])[0]][1];
@@ -328,6 +300,8 @@ fillInBlankText = async (page) => {
 sentenceOrdering = async (page) => {
   try {
     await page.waitFor(".dialog-text");
+
+    sleep(5000);
 
     let answerOrder = await page.evaluate(() => {
       let arr = [];
@@ -470,36 +444,6 @@ writingAssistant = async (page) => {
   return;
 }
 
-sectionProgram = async (page) => {
-  try {
-    await page.waitFor(".btn-last");
-
-    await page.evaluate(() => {
-      document.querySelector(".btn-last").click();
-    });
-
-    sleep(5000);
-
-    await page.waitFor("body");
-
-    const index = await programFinder(page);
-
-    await page.waitFor("#header" + index.toString());
-
-    await page.evaluate(async (index) => {
-      await document.querySelector("#header" + index.toString()).children[4].children[0].click();
-    }, index)
-
-    await page.waitFor("body");
-
-    await sectionIdentifier(page);
-  } catch (err) {
-    console.error(err);
-  }
-
-  return;
-}
-
 dragNDropGeneric = async (page) => {
   try {
     await page.waitFor(".exercice-content");
@@ -556,17 +500,41 @@ dragNDropGeneric = async (page) => {
   return;
 }
 
-ficheFonctionnelle = async (page) => {
+sectionProgram = async (page) => {
   try {
-    await page.waitFor(".btn-next");
+    await page.waitFor(".btn-last");
 
     await page.evaluate(() => {
-      document.querySelector(`a[name='nextBte']`).click();
+      document.querySelector(".btn-last").click();
     });
 
-    sleep(5000);
+    await page.waitFor("body");
+
+    sleep(10000);
+
+    let index = await programFinder(page);
+
+    while (index == -1) {
+       await page.evaluate(async () => {
+        await document.querySelector("a[ng-click='nextPage()']").click();
+      });
+      
+      sleep(1500);
+      
+      index = await programFinder(page);
+    }
+
+    await page.waitFor("#header" + index.toString());
+
+    await page.evaluate(async (index) => {
+      await document.querySelector("#header" + index.toString()).children[4].children[0].click();
+    }, index);
+
+    sleep(1000);
 
     await page.waitFor("body");
+    
+    sleep(5000);
 
     await sectionIdentifier(page);
   } catch (err) {

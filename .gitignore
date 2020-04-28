@@ -24,4 +24,3 @@ yarn-error.log*
 
 # data we dont want to upload
 secrets.js
-playground.js
