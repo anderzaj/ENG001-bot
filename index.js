@@ -1,48 +1,11 @@
 const puppeteer = require("puppeteer");
 const secrets = require("./secrets");
+const sleep = require("./utils/sleep");
+const formatArr = require("./utils/format-array");
 
 const BASE_URL = "https://cyberteachers.eberlitz.com/digital1/rest";
 const SECRET_USER = secrets.username;
 const SECRET_PW = secrets.password;
-
-sleep = (milliseconds) => {
-  const date = Date.now();
-  let currentDate = null;
-  do {
-    currentDate = Date.now();
-  } while (currentDate - date < milliseconds);
-}
-
-formatArr = (arr) => {
-  let _new = [[]];
-  let between = false;
-  let j = 0;
-  let ans = [];
-
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i] == "'") {
-      if (between == true) {
-        between = false;
-      } else {
-        j += 1;
-        _new.push(new Array());
-        between = true;
-      }
-    } else {
-      if (between == true) {
-        _new[j].push(arr[i]);
-      }
-    }
-  }
-
-  for (let i = 0; i < _new.length; i++) {
-    if (_new[i].length > 0) {
-      ans.push(_new[i].join(""));
-    }
-  }
-
-  return ans;
-}
 
 programFinder = async (page) => {
   let i = await page.evaluate(() => {

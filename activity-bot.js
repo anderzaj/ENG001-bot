@@ -1,3 +1,11 @@
+const puppeteer = require("puppeteer");
+const secrets = require("./secrets");
+const sleep = require("./utils/sleep");
+
+const BASE_URL = "https://cyberteachers.eberlitz.com/digital1/rest";
+const SECRET_USER = secrets.username;
+const SECRET_PW = secrets.password;
+
 activityBot = async (hrs) => {
   try {
     const browser = await puppeteer.launch({headless: false});
@@ -16,37 +24,31 @@ activityBot = async (hrs) => {
     await page.type('input#password', SECRET_PW)
     await page.click('.btn.btn-default')
 
-    await page.goto(BASE_URL + "/#/program")
-
-    await page.waitFor(`a[href='/digital1/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`)
-
-    await page.evaluate(() => {
-      document.querySelector(`a[href='/digital1/exercises/exoFrame.jsp?no=1&provenance=33&dest=33&type=worksheet_45&rule=id51233014&&resumeV9=resume']`).click();
-    });
-
-    let res00 = "select[name='res[0][0]']";
-
-    sleep(1000)
-
-    await page.waitFor(res00)
+    sleep(5000)
 
     let ms = 3600000 * hrs
 
     let loop = 0
     let intervalFunc = setInterval(async () => {
       if (loop % 2 == 0) {
-        await page.click("select[name='res[0][0]']");
+        await page.evaluate(() => {
+          document.querySelectorAll("a.program-link")[1].click();
+        });
       } else {
-        await page.click("select[name='res[1][0]']");
+        await page.evaluate(() => {
+          document.querySelectorAll("a.homepage-link")[1].click();
+        });
       }
     
-      if (++loop === Math.ceil(ms/540000)) {
-        clearInterval(intervalFunc)
+      if (++loop === Math.ceil(ms/180000)) {
+        clearInterval(intervalFunc);
       }
-    }, 540000)
+    }, 180000)
 
     return 
   } catch (error) {
     return error
   }
 }
+
+activityBot(4);
