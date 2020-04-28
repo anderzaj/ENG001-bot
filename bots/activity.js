@@ -8,28 +8,34 @@ const SECRET_PW = secrets.password;
 
 activityBot = async (hrs) => {
   try {
-    const browser = await puppeteer.launch({headless: false});
+    console.log("opening new puppeteer browser instance");
+    const browser = await puppeteer.launch({headless: true});
     const [page] = await browser.pages();
 
     await page.setViewport({
       width: 1920,
       height: 1080,
       deviceScaleFactor: 1,
-    })
+    });
 
-    await page.goto(BASE_URL + "/login")
+    console.log("going to", BASE_URL + "/login");
+    await page.goto(BASE_URL + "/login");
 
-    await page.waitForSelector('.login--form-login')
-    await page.type('input#j_username', SECRET_USER)
-    await page.type('input#password', SECRET_PW)
-    await page.click('.btn.btn-default')
+    console.log("waiting for selector and logging in");
+    await page.waitForSelector('.login--form-login');
+    await page.type('input#j_username', SECRET_USER);
+    await page.type('input#password', SECRET_PW);
+    await page.click('.btn.btn-default');
 
-    sleep(5000)
+    console.log("sleeping (5000)")
+    sleep(5000);
 
-    let ms = 3600000 * hrs
+    let ms = 3600000 * hrs;
 
+    console.log("entering loop");
     let loop = 0
     let intervalFunc = setInterval(async () => {
+      console.log("loop:", loop);
       if (loop % 2 == 0) {
         await page.evaluate(() => {
           document.querySelectorAll("a.program-link")[1].click();
@@ -40,15 +46,20 @@ activityBot = async (hrs) => {
         });
       }
     
-      if (++loop === Math.ceil(ms/180000)) {
+      if (++loop === Math.ceil(ms/300000)) {
+        console.log("finished looping");
         clearInterval(intervalFunc);
+        process.exit();
       }
-    }, 180000)
+    }, 300000);
 
-    return 
-  } catch (error) {
-    return error
+    return;
+  } catch (err) {
+    console.error(err);
+    process.exit();
   }
 }
 
-activityBot(4);
+const hrs = parseFloat(process.argv[2]);
+
+activityBot(hrs);

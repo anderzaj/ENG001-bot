@@ -192,3 +192,5 @@ if (boolTest) {
 }
 
 console.log(0 % 2)
+
+console.log(process.argv)
