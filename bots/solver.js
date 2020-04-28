@@ -1,7 +1,7 @@
 const puppeteer = require("puppeteer");
-const secrets = require("./secrets");
-const sleep = require("./utils/sleep");
-const formatArr = require("./utils/format-array");
+const secrets = require("../secrets");
+const sleep = require("../utils/sleep");
+const formatArr = require("../utils/format-array");
 
 const BASE_URL = "https://cyberteachers.eberlitz.com/digital1/rest";
 const SECRET_USER = secrets.username;
