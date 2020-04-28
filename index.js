@@ -1,7 +1,7 @@
 const puppeteer = require("puppeteer");
 const secrets = require("./secrets");
 
-const BASE_URL = "https://cyberteachers.eberlitz.com/digital/rest";
+const BASE_URL = "https://cyberteachers.eberlitz.com/digital1/rest";
 const SECRET_USER = secrets.username;
 const SECRET_PW = secrets.password;
 
@@ -96,7 +96,10 @@ init = async () => {
     let index = await programFinder(page);
 
     while (index == -1) {
-      const counter = document.querySelector(".pagination-counter").textContent.trim().split("");
+      const counter = await page.evaluate(() => {
+        return document.querySelector(".pagination-counter").textContent.trim().split("");
+      });
+
       if (counter[0] == counter[4]) {
         console.log("All programs finished :)");
         process.exit();
@@ -136,12 +139,13 @@ sectionIdentifier = async (page) => {
     return document.getElementsByTagName("body")[0].className;
   });
 
-  if (sectionClasses.includes("vocabulary-presentation")) {
-    await vocabularyPresentation(page);
+  if (sectionClasses.includes("vocabulary-presentation") ||
+      sectionClasses.includes("ficheFonctionnelle") ||
+      sectionClasses.includes("speaking-role-play")
+  ) {
+    await skippable(page);
   } else if (sectionClasses.includes("word-choice")) {
     await wordChoice(page);
-  } else if (sectionClasses.includes("ficheFonctionnelle")) {
-    await ficheFonctionnelle(page);
   } else if (sectionClasses.includes("sentence-ordering")) { 
     await sentenceOrdering(page);
   } else if (sectionClasses.includes("fill-blank-in-text")) {
@@ -150,8 +154,6 @@ sectionIdentifier = async (page) => {
     await qcmVideo(page);
   } else if (sectionClasses.includes("writing-assistant")) {
     await writingAssistant(page);
-  } else if (sectionClasses.includes("speaking-role-play")) {
-    await speakingRolePlay(page);
   } else if (sectionClasses.includes("drag-n-drop-generic")) {
     await dragNDropGeneric(page);
   } else if (sectionClasses.includes("section-program")) {
@@ -248,33 +250,13 @@ wordChoice = async (page) => {
   return;
 }
 
-vocabularyPresentation = async (page) => {
+skippable = async (page) => {
   try {
-    await page.waitFor(".btn-last");
-
-    await page.evaluate(() => {
-      document.querySelector(".btn-last").click();
-    })
-
-    sleep(5000);
-
-    await page.waitFor("body");
-
-    await sectionIdentifier(page);
-  } catch (err) {
-    console.error(err);
-  }
-
-  return;
-}
-
-speakingRolePlay = async (page) => {
-  try {
-    await page.waitFor(".btn-retry");
+    await page.waitFor(`a[name='nextBte']`);
 
     await page.evaluate(() => {
       document.querySelector(`a[name='nextBte']`).click();
-    });
+    })
 
     sleep(5000);
 
@@ -295,7 +277,7 @@ fillBlankDragNDrop = async (page, type) => {
 
     const attribute = type ? "correct" : "ans";
 
-    const snaptargets = await page.evaluate(async () => {
+    const snaptargets = await page.evaluate(async (attribute) => {
       const snaptargets = document.querySelectorAll(".snaptarget");
 
       let elements = [];
@@ -312,10 +294,10 @@ fillBlankDragNDrop = async (page, type) => {
       }
 
       return elements;
-    });
+    }, attribute);
 
     for (let i = 0; i < snaptargets.length; i++) {
-      const draggableCoords = await page.evaluate(async (ans) => {
+      const draggableCoords = await page.evaluate(async (ans, type) => {
         let bounds = {};
         if (type) {
           bounds = document.querySelector(`[ans='${ans}']`).getBoundingClientRect();
@@ -324,7 +306,7 @@ fillBlankDragNDrop = async (page, type) => {
         }
 
         return [(bounds.x + bounds.width*0.33), (bounds.y + bounds.height/2)];
-      }, Object.keys(snaptargets[i])[0]);
+      }, Object.keys(snaptargets[i])[0], type);
 
       let finalX = snaptargets[i][Object.keys(snaptargets[i])[0]][0];
       let finalY = snaptargets[i][Object.keys(snaptargets[i])[0]][1];
@@ -541,81 +523,6 @@ dragNDropGeneric = async (page) => {
     await page.evaluate(() => {
       document.querySelector(".btn-correction").click();
       document.querySelector(".btn-last").click();
-    });
-
-    sleep(5000);
-
-    await page.waitFor("body");
-
-    await sectionIdentifier(page);
-  } catch (err) {
-    console.error(err);
-  }
-
-  return;
-}
-
-/*
-blankSentence = async (page) => {
-  try {
-    await page.waitFor(".exercice-content");
-
-    const snaptargets = await page.evaluate(async () => {
-      const snaptargets = document.querySelectorAll(".snaptarget");
-
-      let elements = [];
-
-      for (let i = 0; i < snaptargets.length; i++) {
-        let tag = snaptargets[i].getAttribute("ans");
-        let bounds = snaptargets[i].children[0].getBoundingClientRect();
-
-        let finalX = parseInt(bounds.x + (bounds.width/2));
-        let finalY = parseInt(bounds.y + (bounds.height/2));
-
-        let coords = [finalX, finalY];
-        elements.push({[tag]: coords});
-      }
-
-      return elements;
-    });
-
-    for (let i = 0; i < snaptargets.length; i++) {
-      const draggableCoords = await page.evaluate(async (ans) => {
-        const bounds = document.querySelector(`span[ans='${ans}']`).getBoundingClientRect();
-        return [(bounds.x + bounds.width*0.33), (bounds.y + bounds.height/2)];
-      }, Object.keys(snaptargets[i])[0]);
-
-      let finalX = snaptargets[i][Object.keys(snaptargets[i])[0]][0];
-      let finalY = snaptargets[i][Object.keys(snaptargets[i])[0]][1];
-      
-      await page.mouse.move(draggableCoords[0] + 5, draggableCoords[1]);
-      await page.mouse.down();
-      await page.mouse.move(finalX, finalY);
-      await page.mouse.up();
-    }
-
-    await page.evaluate(() => {
-      document.querySelector(".btn-correction").click();
-      document.querySelector(".btn-last").click();
-    });
-
-    sleep(5000);
-
-    await page.waitFor("body");
-
-    await sectionIdentifier(page);
-  } catch (err) {
-    console.error(err);
-  }
-}
-*/
-
-ficheFonctionnelle = async (page) => {
-  try {
-    await page.waitFor(".btn-next");
-
-    await page.evaluate(() => {
-      document.querySelector(`a[name='nextBte']`).click();
     });
 
     sleep(5000);
