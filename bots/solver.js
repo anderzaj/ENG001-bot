@@ -3,7 +3,7 @@ const secrets = require("../secrets");
 const sleep = require("../utils/sleep");
 const formatArr = require("../utils/format-array");
 
-const BASE_URL = "https://cyberteachers.eberlitz.com/digital1/rest";
+const BASE_URL = "https://cyberteachers.eberlitz.com/digital/rest";
 const SECRET_USER = secrets.username;
 const SECRET_PW = secrets.password;
 
@@ -64,7 +64,7 @@ init = async () => {
       });
 
       if (counter[0] == counter[4]) {
-        console.log("All programs finished :)");
+        console.log("Congratulations! All programs finished :)");
         process.exit();
       }
 
@@ -104,7 +104,8 @@ sectionIdentifier = async (page) => {
 
   if (sectionClasses.includes("vocabulary-presentation") ||
       sectionClasses.includes("ficheFonctionnelle") ||
-      sectionClasses.includes("speaking-role-play")
+      sectionClasses.includes("speaking-role-play")||
+      sectionClasses.includes("speech-trainer")
   ) {
     await skippable(page);
   } else if (sectionClasses.includes("word-choice")) {
@@ -113,16 +114,14 @@ sectionIdentifier = async (page) => {
     await sentenceOrdering(page);
   } else if (sectionClasses.includes("fill-blank-in-text")) {
     await fillBlankDragNDrop(page, 1);
-  } else if (sectionClasses.includes("qcm-video") || sectionClasses.includes("qcm-audio")) {
+  } else if (sectionClasses.includes("qcm-video") || sectionClasses.includes("qcm-audio") || sectionClasses.split(" ")[1] == "qcm") {
     await qcmVideo(page);
-  } else if (sectionClasses.includes("writing-assistant")) {
+  } else if (sectionClasses.includes("writing-assistant")) { // hay que agregar el writing assistant nuevo
     await writingAssistant(page);
   } else if (sectionClasses.includes("drag-n-drop-generic")) {
     await dragNDropGeneric(page);
   } else if (sectionClasses.includes("section-program")) {
     await sectionProgram(page);
-  } else if (sectionClasses.includes("qcm")) {
-    console.log("qcm");
   } else if (sectionClasses.includes("fill-blank")) {
     await fillBlank(page);
   } else if (sectionClasses.includes("blank-sentence drag-n-drop")) {
@@ -140,30 +139,19 @@ fillBlank = async (page) => {
 
     sleep(5000)
 
-    const fields = await page.evaluate(() => {
+    await page.evaluate(() => {
       const elements = document.querySelectorAll(`input[name='responseId']`);
-      let arr = []
+      let answers = [];
+      
+      for (let i = 0; i < elements.length; i++) {
+        answers.push(elements[i].getAttribute("correctresponse"));
+      }
 
       for (let i = 0; i < elements.length; i++) {
-        arr.push(elements[i])
+        elements[i].value = answers[i]
       }
-      return arr;
     });
 
-    const answers = await page.evaluate(() => {
-        const elements = document.querySelectorAll(`input[name='responseId']`);
-        let answers = [];
-        
-        for (let i = 0; i < elements.length; i++) {
-          answers.push(elements[i].getAttribute("correctresponse"));
-        }
-
-        return answers;
-    });
-
-    for (let i = 0; i < fields.length; i++) {
-      await page.type(`input[correctresponse="${answers[i]}"]`, answers[i]);
-    }
 
     await page.evaluate(() => {
       document.querySelector(".btn-correction").click();
@@ -422,6 +410,7 @@ writingAssistant = async (page) => {
 
     const text = await page.evaluate(() => {
       const iframe = document.querySelector("iframe");
+      // check if the indez we're looking for is undefined, if so return the index -1 
       return iframe.contentWindow.document.querySelectorAll("p")[1].innerText;
     })
     

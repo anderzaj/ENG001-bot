@@ -194,3 +194,4 @@ if (boolTest) {
 console.log(0 % 2)
 
 console.log(process.argv)
+console.log(typeof 2.2)
