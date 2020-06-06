@@ -64,7 +64,7 @@ init = async () => {
       });
 
       if (counter[0] == counter[4]) {
-        console.log("All programs finished :)");
+        console.log("Congratulations! All programs finished :)");
         process.exit();
       }
 
@@ -104,7 +104,8 @@ sectionIdentifier = async (page) => {
 
   if (sectionClasses.includes("vocabulary-presentation") ||
       sectionClasses.includes("ficheFonctionnelle") ||
-      sectionClasses.includes("speaking-role-play")
+      sectionClasses.includes("speaking-role-play")||
+      sectionClasses.includes("speech-trainer")
   ) {
     await skippable(page);
   } else if (sectionClasses.includes("word-choice")) {
